@@ -8,6 +8,13 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
 from .base import Base
+from ..config import get_settings
+
+# Dimension follows whichever embedding provider is configured (default:
+# the free local nomic-embed-text model, 768 dims). If you switch
+# LLM_PROVIDER after data already exists, this dimension changes and
+# existing embeddings must be regenerated.
+EMBEDDING_DIM = get_settings().embedding_dim
 
 
 def _uuid() -> uuid.UUID:
@@ -103,7 +110,7 @@ class Job(Base):
     source_url: Mapped[str] = mapped_column(Text)
     date_posted: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     deadline: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536))
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM))
     url_status: Mapped[str] = mapped_column(String(40), default="ACTIVE")
     canonical_hash: Mapped[str] = mapped_column(String(64), index=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=dt.datetime.utcnow)
