@@ -2,7 +2,6 @@ from __future__ import annotations
 import json, pathlib, re
 from pydantic import BaseModel
 from pypdf import PdfReader
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from ..schemas.profile import (
     ProfileStructured, SkillItem, ExperienceItem, EducationItem,
@@ -10,6 +9,7 @@ from ..schemas.profile import (
 )
 from ..config import get_settings
 from ..core.audit import audit_log
+from ..llm.factory import get_chat_model
 
 SETTINGS = get_settings()
 
@@ -64,8 +64,7 @@ async def ingest_resume(cv_path: pathlib.Path, user_id: str) -> ParsedProfile:
     if not raw.strip():
         raise ValueError("CV text extraction yielded empty document")
 
-    llm = ChatOpenAI(model=SETTINGS.llm_model, temperature=0,
-                     api_key=SETTINGS.openai_api_key)
+    llm = get_chat_model(temperature=0)
     prompt = ChatPromptTemplate.from_messages([
         ("system", EXTRACTION_SYSTEM),
         ("human", EXTRACTION_USER),
