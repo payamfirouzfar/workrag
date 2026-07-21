@@ -24,8 +24,21 @@ framework + the human-approval-gate skeleton + tests**.
 
 1. Drop your resume into `data/cv/your_resume.pdf` (or upload later via
    `POST /profile/upload-cv` once the API is running).
-2. Copy `.env.example` to `.env` and fill in `OPENAI_API_KEY` at minimum.
-3. `docker compose up --build`
+2. Copy `.env.example` to `.env`. The defaults use **Ollama** (free, local,
+   no API key) as the LLM/embeddings provider -- nothing to fill in.
+3. `docker compose up --build`, then pull the local models once:
+   ```
+   docker compose exec ollama ollama pull llama3.1
+   docker compose exec ollama ollama pull nomic-embed-text
+   ```
+
+### Using OpenAI instead (paid, optional)
+
+Set `LLM_PROVIDER=openai` and `OPENAI_API_KEY=...` in `.env`, set
+`EMBEDDING_DIM=1536`, and install the extra: `pip install -e ".[openai]"`.
+Every agent reads its chat/embeddings client from
+`career_os/llm/factory.py`, so this is the only place provider selection
+happens -- no other code changes needed either way.
 
 ## Directory structure
 
