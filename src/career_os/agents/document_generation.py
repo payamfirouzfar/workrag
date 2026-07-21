@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-from ..config import get_settings
 from ..rag.retriever import ProfileRAG
 from ..core.exceptions import UnverifiedClaimError
-
-SETTINGS = get_settings()
+from ..llm.factory import get_chat_model
 
 COVER_LETTER_SYSTEM = """You write cover letters using ONLY facts supplied in
 CONTEXT (retrieved from the candidate's verified profile). Never invent
@@ -33,8 +30,7 @@ class DocumentGenerationAgent:
 
     def __init__(self, profile_rag: ProfileRAG):
         self.rag = profile_rag
-        self.llm = ChatOpenAI(model=SETTINGS.llm_model, temperature=0.4,
-                              api_key=SETTINGS.openai_api_key)
+        self.llm = get_chat_model(temperature=0.4)
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", COVER_LETTER_SYSTEM),
             ("human", COVER_LETTER_USER),
