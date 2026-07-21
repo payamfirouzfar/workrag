@@ -16,12 +16,22 @@ services:
     image: redis:7-alpine
     ports: ["6379:6379"]
 
+  # Free, local LLM/embeddings runtime -- the default provider (LLM_PROVIDER=
+  # ollama). [MANUAL ACTION REQUIRED] After first `docker compose up`, run:
+  #   docker compose exec ollama ollama pull llama3.1
+  #   docker compose exec ollama ollama pull nomic-embed-text
+  ollama:
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: ["ollama_data:/root/.ollama"]
+
   api:
     build: .
     env_file: .env
     depends_on:
       postgres: { condition: service_healthy }
       redis:    { condition: service_started }
+      ollama:   { condition: service_started }
     ports: ["8000:8000"]
     volumes:
       - ./data:/app/data
@@ -34,6 +44,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis:    { condition: service_started }
+      ollama:   { condition: service_started }
     volumes:
       - ./data:/app/data
       - ./src:/app/src
@@ -41,3 +52,4 @@ services:
 
 volumes:
   pgdata:
+  ollama_data:
