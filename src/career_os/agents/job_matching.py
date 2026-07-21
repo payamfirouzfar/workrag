@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from langchain_openai import OpenAIEmbeddings
-
 from ..schemas.profile import ProfileStructured, Provenance
 from ..rag.retriever import ProfileRAG
-from ..config import get_settings
+from ..llm.factory import get_embeddings_client
 
-SETTINGS = get_settings()
 WEIGHTS = {
     "technical": 0.30, "experience": 0.20, "education": 0.10,
     "project": 0.10, "research": 0.10, "location": 0.05,
@@ -18,8 +15,7 @@ class JobMatchingAgent:
     def __init__(self, profile: ProfileStructured, profile_rag: ProfileRAG):
         self.profile = profile
         self.rag = profile_rag
-        self.embeddings = OpenAIEmbeddings(model=SETTINGS.embedding_model,
-                                            api_key=SETTINGS.openai_api_key)
+        self.embeddings = get_embeddings_client()
 
     async def score(self, job: dict) -> dict:
         confirmed_skills = {s.name.lower() for s in self.profile.skills
