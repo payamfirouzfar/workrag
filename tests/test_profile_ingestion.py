@@ -56,7 +56,7 @@ def fake_cv(tmp_path):
 
 @pytest.mark.asyncio
 async def test_ingest_resume_tags_provenance(fake_cv, monkeypatch):
-    monkeypatch.setattr(profile_ingestion, "ChatOpenAI", lambda *a, **k: object())
+    monkeypatch.setattr(profile_ingestion, "get_chat_model", lambda *a, **k: object())
     monkeypatch.setattr(
         profile_ingestion.ChatPromptTemplate, "from_messages",
         classmethod(lambda cls, _msgs: _FakePrompt()),

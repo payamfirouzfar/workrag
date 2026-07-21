@@ -6,7 +6,7 @@ from career_os.agents.job_matching import JobMatchingAgent
 @pytest.mark.asyncio
 async def test_strong_match_scores_high(sample_profile, fake_profile_rag, monkeypatch):
     monkeypatch.setattr(
-        "career_os.agents.job_matching.OpenAIEmbeddings",
+        "career_os.agents.job_matching.get_embeddings_client",
         lambda *a, **k: object(),
     )
     agent = JobMatchingAgent(profile=sample_profile, profile_rag=fake_profile_rag)
@@ -29,7 +29,7 @@ async def test_strong_match_scores_high(sample_profile, fake_profile_rag, monkey
 @pytest.mark.asyncio
 async def test_missing_skills_produce_gaps(sample_profile, fake_profile_rag, monkeypatch):
     monkeypatch.setattr(
-        "career_os.agents.job_matching.OpenAIEmbeddings",
+        "career_os.agents.job_matching.get_embeddings_client",
         lambda *a, **k: object(),
     )
     agent = JobMatchingAgent(profile=sample_profile, profile_rag=fake_profile_rag)
