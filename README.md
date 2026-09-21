@@ -1,89 +1,98 @@
 # AI Career OS
 
-An agentic system that ingests your resume, builds a verified profile (RAG-backed,
-provenance-tagged), discovers jobs from legitimate sources, matches and ranks them
-against your profile, generates tailored application documents, and — only with
-explicit human approval at every irreversible step — assists with submitting
-applications through a safety-controlled browser automation layer.
+AI Career OS is an experimental assistant for organising a job search. It turns a resume into a structured profile, finds and ranks relevant roles, prepares application material, and keeps a human approval step before any submission action.
 
-## ⚠️ Status of this delivery
+The project focuses on a problem I care about: job-search tools should help with repetitive work without inventing experience or taking irreversible actions on a person's behalf.
 
-This repository ships **Phases 1–4 + the security core + the source adapter
-framework + the human-approval-gate skeleton + tests**.
+## What is implemented
 
-- **Browser automation (Phase 5)** is stubbed: the *safety controller is fully
-  implemented* (CAPTCHA/MFA/anti-bot detection, sensitive-field gating, and a
-  hard "no submit without recorded user approval" gate), but the Playwright
-  driving logic itself is a scaffold you'll need to finish and test against
-  real ATS forms.
-- **Email intelligence (Phase 7)** ships with the OAuth scaffold + classifier
-  hooks only.
-- Anything marked `[MANUAL ACTION REQUIRED]` below needs you.
+The current repository includes:
 
-## [MANUAL ACTION REQUIRED] Before running
+- PDF resume ingestion and chunking
+- a provenance-aware profile model
+- retrieval over profile information
+- adapters for several public applicant-tracking-system sources
+- job extraction, verification, deduplication, matching, and ranking agents
+- application-strategy and document-generation components
+- FastAPI routes for profiles, jobs, applications, approvals, and email classification
+- PostgreSQL, pgvector, Redis, Alembic, Docker, and structured logging
+- tests for profile ingestion, matching, verification, prompt-injection checks, and browser field mapping
 
-1. Drop your resume into `data/cv/your_resume.pdf` (or upload later via
-   `POST /profile/upload-cv` once the API is running).
-2. Copy `.env.example` to `.env`. The defaults use **Ollama** (free, local,
-   no API key) as the LLM/embeddings provider -- nothing to fill in.
-3. `docker compose up --build`, then pull the local models once:
-   ```
-   docker compose exec ollama ollama pull llama3.1
-   docker compose exec ollama ollama pull nomic-embed-text
-   ```
+## What is not finished
 
-### Using OpenAI instead (paid, optional)
+This is version `0.1.0`, not a complete automatic application platform.
 
-Set `LLM_PROVIDER=openai` and `OPENAI_API_KEY=...` in `.env`, set
-`EMBEDDING_DIM=1536`, and install the extra: `pip install -e ".[openai]"`.
-Every agent reads its chat/embeddings client from
-`career_os/llm/factory.py`, so this is the only place provider selection
-happens -- no other code changes needed either way.
+- The browser safety controls and approval gate are present, but the Playwright logic that fills real application forms is still a scaffold.
+- Email OAuth and classification have interface-level support, but the complete provider integration is not finished.
+- Every source adapter needs real-world testing against its provider's current terms, rate limits, and page structure.
 
-## Directory structure
+The system should not be used to submit applications unattended.
 
-```
-ai-career-os/
-├── README.md
-├── docker-compose.yml
-├── Dockerfile
-├── pyproject.toml
-├── .env.example
-├── alembic.ini
-├── data/
-│   ├── cv/                 # <-- put your resume here
-│   └── uploads/
-├── src/career_os/
-│   ├── config.py
-│   ├── main.py
-│   ├── core/{logging,audit,exceptions}.py
-│   ├── db/{base,session,models}.py
-│   ├── schemas/{profile,job,application,email}.py
-│   ├── rag/{embeddings,vectorstore,chunker,retriever}.py
-│   ├── agents/{orchestrator,profile_ingestion,profile_rag,job_discovery,
-│   │           job_extraction,job_matching,job_verification,job_dedup,
-│   │           job_ranking,application_strategy,document_generation,
-│   │           browser_application}.py
-│   ├── sources/{policy,base,greenhouse,lever,workday,ashby,rss}.py
-│   ├── browser/{session,field_mapping,safety}.py
-│   ├── email/{oauth,classifier}.py
-│   ├── security/{prompt_injection,content_sanitizer,url_safety}.py
-│   └── api/{routes_profile,routes_jobs,routes_applications,
-│             routes_email,routes_approval}.py
-└── tests/{conftest,test_profile_ingestion,test_job_matching,
-            test_job_verification,test_prompt_injection,
-            test_browser_field_mapping}.py
+## Safety approach
+
+- Profile statements are labelled as confirmed, inferred, possible, or missing instead of being silently invented.
+- External job and email content passes through sanitisation and prompt-injection checks before reaching an LLM.
+- Application URLs are checked before they are trusted.
+- Submission requires a recorded user decision. The browser agent rejects an unapproved submission request.
+- CAPTCHA and MFA are treated as points where the user must take control.
+
+These controls reduce risk, but they do not make the unfinished browser automation production-ready.
+
+## Quick start with Ollama
+
+You need Docker and Docker Compose.
+
+```bash
+git clone https://github.com/payamfirouzfar/workrag.git
+cd workrag
+cp .env.example .env
+docker compose up --build
 ```
 
-## Safety principles baked into the code
+Pull the local models once:
 
-- **Provenance taxonomy**: every fact about you is tagged `CONFIRMED_FACT`,
-  `INFERRED_SKILL`, `POSSIBLE_SKILL`, or `MISSING_INFORMATION` — the system
-  never invents experience.
-- **Prompt-injection defense**: all external content (job descriptions, emails,
-  web pages) is sanitized before reaching an LLM (`security/prompt_injection.py`).
-- **URL/phishing verification** before any application link is trusted
-  (`security/url_safety.py`).
-- **Human approval gate**: `BrowserApplicationAgent.submit()` raises
-  `PermissionError` if called without a recorded `UserApproval` row — there is
-  no code path that submits an application without your explicit sign-off.
+```bash
+docker compose exec ollama ollama pull llama3.1
+docker compose exec ollama ollama pull nomic-embed-text
+```
+
+Add a resume at `data/cv/your_resume.pdf`, or start the API and upload it through `POST /profile/upload-cv`.
+
+The FastAPI health check is available at `/healthz`, and the interactive API documentation is at `/docs`.
+
+## Optional OpenAI provider
+
+Ollama is the default. To use OpenAI instead, set `LLM_PROVIDER=openai` and `OPENAI_API_KEY` in `.env`, use the correct embedding dimension, and install the optional dependency:
+
+```bash
+pip install -e ".[openai]"
+```
+
+## Local development
+
+The project requires Python 3.11 or newer.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+pytest
+```
+
+## Repository guide
+
+```text
+src/career_os/agents/      workflow and specialist agents
+src/career_os/api/         FastAPI routes
+src/career_os/browser/     form mapping and safety controls
+src/career_os/db/          database models and sessions
+src/career_os/email/       OAuth and classification scaffolding
+src/career_os/rag/         chunking, embeddings, retrieval, vector store
+src/career_os/security/    content, prompt, and URL checks
+src/career_os/sources/     job-source policies and adapters
+tests/                     focused automated tests
+```
+
+## Responsible use
+
+Review every generated document, confirm every profile claim, respect each job site's rules, and keep a person in control of submission. This repository is a work in progress and should be evaluated in a test environment before it is connected to real accounts.
